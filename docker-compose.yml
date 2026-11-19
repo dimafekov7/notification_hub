@@ -11,6 +11,11 @@ services:
     depends_on:
       - db
       - redis
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
+        loki-batch-size: "400"
 
   worker:
     build: .
@@ -21,6 +26,11 @@ services:
     depends_on:
       - db
       - redis
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://host.docker.internal:3100/loki/api/v1/push"
+        loki-batch-size: "400"
     
   db:
     image: postgres:15-alpine
@@ -37,6 +47,34 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  # --- НОВЫЕ СЕРВИСЫ ДЛЯ МОНИТОРИНГА ---
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - web
+      - worker
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+      - loki
+
+  loki:
+    image: grafana/loki:2.9.6
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
 
 volumes:
   postgres_data:

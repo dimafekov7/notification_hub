@@ -4,8 +4,8 @@ from fastapi import FastAPI, Request, Depends
 from pythonjsonlogger import jsonlogger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.queue import push_to_queue
-
+from app.redis_queue import push_to_queue
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.database import engine, get_db
 from app.models import Base, NotificationModel, ServiceModel, ChannelModel
 from app.schemas import NotificationRequest, NotificationResponse
@@ -19,7 +19,7 @@ logger.addHandler(logHandler)
 logger.setLevel(logging.INFO)
 
 app = FastAPI(title="Notification Hub API", version="1.0.0")
-
+Instrumentator().instrument(app).expose(app)
 
 @app.on_event("startup")
 async def startup_event():
